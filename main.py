@@ -1,3 +1,49 @@
+
+import os
+os.environ['OMP_NUM_THREADS'] = '1'
+
+experiment_meta_data_dict = {}
+experiment_name = 'meta_data_test3'
+experiment_meta_data_dict['experiment_name'] = experiment_name
+
+dir_string = '/home/joachim/Desktop/good_ppo_neat/good_ppo_neat/neat_files/meta_data_wrapper/'
+directory = os.fsencode(dir_string)
+
+save_at = dir_string+experiment_name
+check_name = os.path.isdir(save_at)
+
+if not check_name:
+    os.makedirs(save_at)
+else:
+    raise Exception('Experiment name already used: specify a new experiment name')
+
+
+for file in os.listdir(directory):
+    filename = os.fsdecode(file)
+    if filename.endswith('.py'):
+        print(filename)
+        py_file = open(dir_string+filename, 'r')
+        code_string = py_file.read()
+        experiment_meta_data_dict[filename] = code_string
+
+
+experiment_description = 'add description of experiment'
+experiment_meta_data_dict['experiment_description'] = experiment_description
+hypothesis = ' add hypothesis'
+experiment_meta_data_dict['hypothesis'] = hypothesis
+
+from datetime import datetime
+now = datetime.now()
+start_time = now.strftime("%d/%m/%Y %H:%M:%S")
+experiment_meta_data_dict['start_time'] = start_time
+
+
+import pickle
+pickle.dump( experiment_meta_data_dict,
+            open( save_at+'/' + experiment_name+ '_meta_data.pickle', 'wb'))
+
+
+
 from policies import *
 from rollout import *
 import gym
@@ -10,17 +56,17 @@ import pickle
 gym.logger.set_level(40)
 torch.set_num_threads(1)
 
-EPOCHS = 1600 
-popsize = 10 #500
-cpus = 5
+EPOCHS = 4000 
+popsize = 512
+cpus = -1
 if cpus==-1:
     cpus = multiprocessing.cpu_count()
 
 start_sig = 0.1
-plastic_weights =(128*28)+(64*128)+(8*64) # depending on network size
+plastic_weights =(128*26)+(64*128)+(8*64) # depending on network size
 num_rules = plastic_weights  #can be any number <= plastic_weights
-num_params = 5
-save_every = 50
+num_params = 6
+save_every = 500
 
 
 if num_rules == plastic_weights:
@@ -49,10 +95,25 @@ solver.set_mu(coeffs.reshape(-1))
 #'''
 
 
+def circle_sampler(r):
+    angle = np.random.uniform(0,2*np.pi)
+    x = r * np.cos(angle)
+    y = r * np.sin(angle)
+    return x, y
+
+
 def worker(arg):
-    fit_func, coeffs, inds = arg
-    r  = fit_func(coeffs, inds)
-    return r
+    
+    performances = []
+    for _ in range(3):
+        x, y = circle_sampler(1000)
+
+        fit_func, coeffs, inds = arg
+        r  = fit_func(coeffs, inds, x, y)
+        performances.append(r)
+
+    return np.min(performances)
+
 
 pop_mean_curve = np.zeros((EPOCHS))
 best_sol_curve = np.zeros((EPOCHS))
@@ -81,13 +142,11 @@ for epoch in range(EPOCHS):
         print('saving')
         print('mean score',np.mean(fitlist))
         print('best score', np.max(fitlist))
-        MeanSol = solver.mu#.current_param()
-        pickle.dump((MeanSol,
+        pickle.dump((solver,
             inds, epoch,
             pop_mean_curve,
             best_sol_curve,
-            solver.learning_rate,
-            solver.sigma),open('trained_'+str(num_rules)+'_'+str(num_params)+'_'+str(epoch)+'_'+str(np.mean(fitlist))+ '.pickle', 'wb'))
+            ),open('trained_'+str(num_rules)+'_'+str(num_params)+'_'+str(epoch)+'_'+str(np.mean(fitlist))+ '.pickle', 'wb'))
 
  
     print()
