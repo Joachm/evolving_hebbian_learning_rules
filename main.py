@@ -11,16 +11,16 @@ gym.logger.set_level(40)
 torch.set_num_threads(1)
 
 EPOCHS = 1600 
-popsize = 10 #500
-cpus = 5
+popsize = 512
+cpus = 64
 if cpus==-1:
     cpus = multiprocessing.cpu_count()
 
 start_sig = 0.1
 plastic_weights =(128*28)+(64*128)+(8*64) # depending on network size
 num_rules = plastic_weights  #can be any number <= plastic_weights
-num_params = 5
-save_every = 50
+num_params = 5 #number of parameters in the hebbian rule
+save_every = 500
 
 
 if num_rules == plastic_weights:
@@ -81,13 +81,11 @@ for epoch in range(EPOCHS):
         print('saving')
         print('mean score',np.mean(fitlist))
         print('best score', np.max(fitlist))
-        MeanSol = solver.mu#.current_param()
-        pickle.dump((MeanSol,
+
+        pickle.dump((solver,
             inds, epoch,
             pop_mean_curve,
-            best_sol_curve,
-            solver.learning_rate,
-            solver.sigma),open('trained_'+str(num_rules)+'_'+str(num_params)+'_'+str(epoch)+'_'+str(np.mean(fitlist))+ '.pickle', 'wb'))
+            best_sol_curve),open('trained_'+str(num_rules)+'_'+str(num_params)+'_'+str(epoch)+'_'+str(np.mean(fitlist))+ '.pickle', 'wb'))
 
  
     print()
