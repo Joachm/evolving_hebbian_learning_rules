@@ -1,16 +1,14 @@
-'''
-Adapted from E. Najarro
-https://github.com/enajx/HebbianMetaLearning
-'''
 import gym
-import pybullet
+import pybullet_envs
 from hebbian_weights_update import *
 from policies import MLP_heb
 import torch
 import torch.nn as nn
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
+import pickle
 from rollout import fitness_function
 import numpy as np
+from main import num_rules, num_params
 
 
 N_EVALS = 10
@@ -35,7 +33,7 @@ if SHOW_CURVES:
 
 
 
-coeffs = results[0].mu
+coeffs = results[0].mu.reshape(num_rules, num_params)
 inds = results[1]
 
 
